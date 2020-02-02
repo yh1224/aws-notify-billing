@@ -88,16 +88,19 @@ def get_message(total_billing, service_billings, service_billings_prev):
     for item in service_billings:
         service_name = item['service_name']
         billing = round(float(item['billing']), 2)
-        billing_prev = 0
-        item_prev = next(x for x in service_billings_prev if x['service_name'] == service_name)
-        if item_prev:
-            billing_prev = round(float(item_prev['billing']), 2)
-        billing_delta = billing - billing_prev
+        billing_delta = None
+        prev_items = [x for x in service_billings_prev if x['service_name'] == service_name]
+        if len(prev_items) > 0:
+            billing_prev = round(float(prev_items[0]['billing']), 2)
+            billing_delta = billing - billing_prev
 
         if billing == 0.0:
             # 請求無し（0.0 USD）の場合は、内訳を表示しない
             continue
-        details.append(f'- {service_name}: {billing:.2f} (+{billing_delta:.2f}) USD')
+        if billing_delta is not None:
+            details.append(f'- {service_name}: {billing:.2f} (+{billing_delta:.2f}) USD')
+        else:
+            details.append(f'- {service_name}: {billing:.2f} USD')
 
     return title, '\n'.join(details)
 
