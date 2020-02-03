@@ -11,7 +11,7 @@ Parameters:
     Type: String
 
 Resources:
-  IamRole:
+  NotifyBilling:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -24,7 +24,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
-        - PolicyName: "CustomPolicy"
+        - PolicyName: "NotifyBillingPolicy"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -36,9 +36,9 @@ Resources:
                 Action:
                   - sns:Publish
                 Resource:
-                  Ref: Topic
+                  Ref: NotifyBillingTopic
 
-  Function:
+  NotifyBillingFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/
@@ -46,14 +46,14 @@ Resources:
       Runtime: python3.8
       Environment:
         Variables:
-          NOTIFY_ARN: !Ref Topic
+          NOTIFY_ARN: !Ref NotifyBillingTopic
           SLACK_WEBHOOK_URL: !Ref SlackWebhookUrl
-      Role: !GetAtt IamRole.Arn
+      Role: !GetAtt NotifyBilling.Arn
       Events:
         Notify:
           Type: Schedule
           Properties:
             Schedule: cron(30 0 * * ? *) # 09:30 JST
 
-  Topic:
+  NotifyBillingTopic:
     Type: AWS::SNS::Topic
