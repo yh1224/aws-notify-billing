@@ -84,7 +84,7 @@ def get_message(total_billing, service_billings, service_billings_prev):
 
     title = f'{start}~{end} : Your billing amount is {total:.2f} USD.'
 
-    details = []
+    bills = []
     for item in service_billings:
         service_name = item['service_name']
         billing = round(float(item['billing']), 2)
@@ -98,11 +98,17 @@ def get_message(total_billing, service_billings, service_billings_prev):
             # 請求無し（0.0 USD）の場合は、内訳を表示しない
             continue
         if billing_delta is not None:
-            details.append(f'- {service_name}: {billing:.2f} (+{billing_delta:.2f}) USD')
+            detail = f'- {service_name}: {billing:.2f}(+{billing_delta:.2f}) USD'
         else:
-            details.append(f'- {service_name}: {billing:.2f} USD')
+            detail = f'- {service_name}: {billing:.2f} USD'
+        bills.append({'billing': billing, 'detail': detail})
+    print(bills)
 
-    return title, '\n'.join(details)
+    # sort by billing
+    bills = sorted(bills, key=lambda x: x['billing'], reverse=True)
+
+    message = '\n'.join(map(lambda x: x['detail'], bills))
+    return title, message
 
 
 def get_prev_time_period():
