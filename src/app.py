@@ -136,7 +136,7 @@ def get_begin_of_month(target_day):
 def notify(title, message):
     print(title)
     print(message)
-    if TOPIC_ARN is not None and TOPIC_ARN != 'Topic':
+    if TOPIC_ARN is not None and TOPIC_ARN != 'NotifyBillingTopic':
         notify_sns(TOPIC_ARN, title, message)
     if SLACK_WEBHOOK_URL is not None and SLACK_WEBHOOK_URL != 'SlackWebhookUrl':
         notify_slack(SLACK_WEBHOOK_URL, title, message)
