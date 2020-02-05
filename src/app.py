@@ -85,9 +85,14 @@ def get_message(total_billing, service_billings, service_billings_prev):
     title = f'{start}~{end} : Your billing amount is {total:.2f} USD.'
 
     bills = []
+    tax = None
     for item in service_billings:
         service_name = item['service_name']
         billing = round(float(item['billing']), 2)
+        if service_name == 'Tax':
+            tax = billing
+            continue
+
         billing_delta = None
         prev_items = [x for x in service_billings_prev if x['service_name'] == service_name]
         if len(prev_items) > 0:
@@ -108,6 +113,8 @@ def get_message(total_billing, service_billings, service_billings_prev):
     bills = sorted(bills, key=lambda x: x['billing'], reverse=True)
 
     message = '\n'.join(map(lambda x: x['detail'], bills))
+    if tax is not None:
+        message += f'\n- Tax: {tax:.2f} USD'
     return title, message
 
 
