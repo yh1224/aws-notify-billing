@@ -5,8 +5,8 @@ import requests
 from datetime import datetime, timedelta
 from datetime import date
 
-TOPIC_ARN = os.environ.get('NOTIFY_ARN')
-SLACK_WEBHOOK_URL = os.environ.get('SLACK_WEBHOOK_URL')
+NOTIFY_TOPIC_ARN = os.environ['NOTIFY_TOPIC_ARN']
+SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
 
 
 def lambda_handler(event, context):
@@ -143,9 +143,9 @@ def get_begin_of_month(target_day):
 def notify(title, message):
     print(title)
     print(message)
-    if TOPIC_ARN is not None and TOPIC_ARN != 'NotifyBillingTopic':
-        notify_sns(TOPIC_ARN, title, message)
-    if SLACK_WEBHOOK_URL is not None and SLACK_WEBHOOK_URL != 'SlackWebhookUrl':
+    if len(NOTIFY_TOPIC_ARN) > 0:
+        notify_sns(NOTIFY_TOPIC_ARN, title, message)
+    if len(SLACK_WEBHOOK_URL) > 0:
         notify_slack(SLACK_WEBHOOK_URL, title, message)
 
 
