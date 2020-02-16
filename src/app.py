@@ -118,21 +118,6 @@ def get_message(total_billing, service_billings, service_billings_prev):
     return title, message
 
 
-def get_prev_time_period():
-    yesterday = date.today() - timedelta(days=1)
-    return {
-        'Start': get_begin_of_month(yesterday).isoformat(),
-        'End': yesterday.isoformat()
-    }
-
-
-def get_time_period(today):
-    return {
-        'Start': get_begin_of_month(today).isoformat(),
-        'End': today.isoformat()
-    }
-
-
 def get_begin_of_month(target_day):
     if target_day.day == 1:
         target_day = target_day - timedelta(days=1)
