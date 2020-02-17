@@ -18,13 +18,15 @@ def lambda_handler(event, context):
     total_billing = get_total_billing(ce_client, target_day)
     service_billings = get_service_billings(ce_client, target_day)
 
-    service_billings_prev = []
+    total_billing_prev = None
+    service_billings_prev = None
     if target_day.day != 2:
         prev_day = target_day - timedelta(days=1)
+        total_billing_prev = get_total_billing(ce_client, prev_day)
         service_billings_prev = get_service_billings(ce_client, prev_day)
 
     # 通知
-    (title, message) = get_message(total_billing, service_billings, service_billings_prev)
+    (title, message) = get_message(total_billing, total_billing_prev, service_billings, service_billings_prev)
     notify(title, message)
 
 
@@ -76,13 +78,19 @@ def get_service_billings(client, target_day):
     return billings
 
 
-def get_message(total_billing, service_billings, service_billings_prev):
+def get_message(total_billing, total_billing_prev, service_billings, service_billings_prev):
     start = datetime.strptime(total_billing['start'], '%Y-%m-%d').strftime('%m/%d')
     end_date = datetime.strptime(total_billing['end'], '%Y-%m-%d') - timedelta(days=1)
     end = end_date.strftime('%m/%d')
     total = round(float(total_billing['billing']), 2)
+    total_delta = None
+    if total_billing_prev is not None:
+        total_delta = round(float(total_billing['billing']) - float(total_billing_prev['billing']), 2)
 
-    title = f'{start}~{end} : Your billing amount is {total:.2f} USD.'
+    if total_delta is not None:
+        title = f'{start}~{end} : Your billing amount is {total:.2f}(+{total_delta:.2f}) USD.'
+    else:
+        title = f'{start}~{end} : Your billing amount is {total:.2f} USD.'
 
     bills = []
     tax = None
@@ -94,10 +102,11 @@ def get_message(total_billing, service_billings, service_billings_prev):
             continue
 
         billing_delta = None
-        prev_items = [x for x in service_billings_prev if x['service_name'] == service_name]
-        if len(prev_items) > 0:
-            billing_prev = round(float(prev_items[0]['billing']), 2)
-            billing_delta = billing - billing_prev
+        if service_billings_prev is not None:
+            prev_items = [x for x in service_billings_prev if x['service_name'] == service_name]
+            if len(prev_items) > 0:
+                billing_prev = round(float(prev_items[0]['billing']), 2)
+                billing_delta = billing - billing_prev
 
         if billing == 0.0:
             # 請求無し（0.0 USD）の場合は、内訳を表示しない
