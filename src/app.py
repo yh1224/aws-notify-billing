@@ -9,11 +9,11 @@ import requests
 NOTIFY_TOPIC_ARN = os.environ['NOTIFY_TOPIC_ARN']
 SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
 
+ce_client = boto3.client('ce', region_name='us-east-1')
+
 
 def lambda_handler(event, context):
-    ce_client = boto3.client('ce', region_name='us-east-1')
-
-    target_day = date.today()
+    target_day = date.today() - timedelta(days=1)
 
     # 合計とサービス毎の請求額を取得する
     total_billing = get_total_billing(ce_client, get_begin_of_month(target_day), target_day)
