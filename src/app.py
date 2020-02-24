@@ -1,9 +1,10 @@
-import os
-import boto3
 import json
-import requests
-from datetime import datetime, timedelta
+import os
 from datetime import date
+from datetime import datetime, timedelta
+
+import boto3
+import requests
 
 NOTIFY_TOPIC_ARN = os.environ['NOTIFY_TOPIC_ARN']
 SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
@@ -15,27 +16,27 @@ def lambda_handler(event, context):
     target_day = date.today()
 
     # 合計とサービス毎の請求額を取得する
-    total_billing = get_total_billing(ce_client, target_day)
-    service_billings = get_service_billings(ce_client, target_day)
+    total_billing = get_total_billing(ce_client, get_begin_of_month(target_day), target_day)
+    service_billings = get_service_billings(ce_client, get_begin_of_month(target_day), target_day)
 
     total_billing_prev = None
     service_billings_prev = None
     if target_day.day != 2:
         prev_day = target_day - timedelta(days=1)
-        total_billing_prev = get_total_billing(ce_client, prev_day)
-        service_billings_prev = get_service_billings(ce_client, prev_day)
+        total_billing_prev = get_total_billing(ce_client, prev_day, target_day)
+        service_billings_prev = get_service_billings(ce_client, prev_day, target_day)
 
     # 通知
-    (title, message) = get_message(total_billing, total_billing_prev, service_billings, service_billings_prev)
+    (title, message) = get_message(total_billing, service_billings, total_billing_prev, service_billings_prev)
     notify(title, message)
 
 
-def get_total_billing(client, target_day):
+def get_total_billing(client, start_day, end_day):
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ce.html#CostExplorer.Client.get_cost_and_usage
     response = client.get_cost_and_usage(
         TimePeriod={
-            'Start': get_begin_of_month(target_day).isoformat(),
-            'End': target_day.isoformat()
+            'Start': start_day.isoformat(),
+            'End': end_day.isoformat()
         },
         Granularity='MONTHLY',
         Metrics=[
@@ -49,12 +50,12 @@ def get_total_billing(client, target_day):
     }
 
 
-def get_service_billings(client, target_day):
+def get_service_billings(client, start_day, end_day):
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ce.html#CostExplorer.Client.get_cost_and_usage
     response = client.get_cost_and_usage(
         TimePeriod={
-            'Start': get_begin_of_month(target_day).isoformat(),
-            'End': target_day.isoformat()
+            'Start': start_day.isoformat(),
+            'End': end_day.isoformat()
         },
         Granularity='MONTHLY',
         Metrics=[
@@ -78,17 +79,17 @@ def get_service_billings(client, target_day):
     return billings
 
 
-def get_message(total_billing, total_billing_prev, service_billings, service_billings_prev):
+def get_message(total_billing, service_billings, total_billing_prev, service_billings_prev):
     start = datetime.strptime(total_billing['start'], '%Y-%m-%d').strftime('%m/%d')
     end_date = datetime.strptime(total_billing['end'], '%Y-%m-%d') - timedelta(days=1)
     end = end_date.strftime('%m/%d')
     total = round(float(total_billing['billing']), 2)
-    total_delta = None
+    total_prev = None
     if total_billing_prev is not None:
-        total_delta = round(float(total_billing['billing']) - float(total_billing_prev['billing']), 2)
+        total_prev = round(float(total_billing_prev['billing']), 2)
 
-    if total_delta is not None:
-        title = f'{start}~{end} : Your billing amount is {total:.2f}(+{total_delta:.2f}) USD.'
+    if total_prev is not None:
+        title = f'{start}~{end} : Your billing amount is {total:.2f}(+{total_prev:.2f}) USD.'
     else:
         title = f'{start}~{end} : Your billing amount is {total:.2f} USD.'
 
@@ -101,18 +102,17 @@ def get_message(total_billing, total_billing_prev, service_billings, service_bil
             tax = billing
             continue
 
-        billing_delta = None
+        billing_prev = None
         if service_billings_prev is not None:
             prev_items = [x for x in service_billings_prev if x['service_name'] == service_name]
             if len(prev_items) > 0:
                 billing_prev = round(float(prev_items[0]['billing']), 2)
-                billing_delta = billing - billing_prev
 
         if billing == 0.0:
             # 請求無し（0.0 USD）の場合は、内訳を表示しない
             continue
-        if billing_delta is not None:
-            detail = f'- {service_name}: {billing:.2f}(+{billing_delta:.2f}) USD'
+        if billing_prev is not None:
+            detail = f'- {service_name}: {billing:.2f}(+{billing_prev:.2f}) USD'
         else:
             detail = f'- {service_name}: {billing:.2f} USD'
         bills.append({'billing': billing, 'detail': detail})
