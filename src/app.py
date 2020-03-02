@@ -14,50 +14,19 @@ ce_client = boto3.client('ce', region_name='us-east-1')
 
 def lambda_handler(event, context):
     target_day = date.today() - timedelta(days=1)
-
-    # 合計とサービス毎の請求額を取得する
-    total_billing = get_total_billing(ce_client, get_begin_of_month(target_day), target_day)
-    service_billings = get_service_billings(ce_client, get_begin_of_month(target_day), target_day)
-
-    total_billing_prev = None
-    service_billings_prev = None
-    if target_day.day != 2:
-        prev_day = target_day - timedelta(days=1)
-        total_billing_prev = get_total_billing(ce_client, prev_day, target_day)
-        service_billings_prev = get_service_billings(ce_client, prev_day, target_day)
-
-    # 通知
-    (title, message) = get_message(total_billing, service_billings, total_billing_prev, service_billings_prev)
+    billing = get_billing(ce_client, get_begin_of_month(target_day), target_day)
+    (title, message) = get_message(billing)
     notify(title, message)
 
 
-def get_total_billing(client, start_day, end_day):
+def get_billing(client, start_day, end_day):
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ce.html#CostExplorer.Client.get_cost_and_usage
     response = client.get_cost_and_usage(
         TimePeriod={
             'Start': start_day.isoformat(),
             'End': end_day.isoformat()
         },
-        Granularity='MONTHLY',
-        Metrics=[
-            'AmortizedCost'
-        ]
-    )
-    return {
-        'start': response['ResultsByTime'][0]['TimePeriod']['Start'],
-        'end': response['ResultsByTime'][0]['TimePeriod']['End'],
-        'billing': response['ResultsByTime'][0]['Total']['AmortizedCost']['Amount'],
-    }
-
-
-def get_service_billings(client, start_day, end_day):
-    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ce.html#CostExplorer.Client.get_cost_and_usage
-    response = client.get_cost_and_usage(
-        TimePeriod={
-            'Start': start_day.isoformat(),
-            'End': end_day.isoformat()
-        },
-        Granularity='MONTHLY',
+        Granularity='DAILY',
         Metrics=[
             'AmortizedCost'
         ],
@@ -69,61 +38,56 @@ def get_service_billings(client, start_day, end_day):
         ]
     )
 
-    billings = []
+    daily = {}
+    total = {}
+    for result_by_time in response['ResultsByTime']:
+        start_date = result_by_time['TimePeriod']['Start']
+        daily[start_date] = {}
+        for group in result_by_time['Groups']:
+            service_name = group['Keys'][0]
+            if service_name == 'Tax':  # exclude tax
+                continue
+            amount = float(group['Metrics']['AmortizedCost']['Amount'])
+            daily[start_date][service_name] = amount
+            if service_name not in total:
+                total[service_name] = 0
+            total[service_name] += amount
 
-    for item in response['ResultsByTime'][0]['Groups']:
-        billings.append({
-            'service_name': item['Keys'][0],
-            'billing': item['Metrics']['AmortizedCost']['Amount']
-        })
-    return billings
+    return {
+        'start': start_day.isoformat(),
+        'end': end_day.isoformat(),
+        'total': total,
+        'daily': daily
+    }
 
 
-def get_message(total_billing, service_billings, total_billing_prev, service_billings_prev):
-    start = datetime.strptime(total_billing['start'], '%Y-%m-%d').strftime('%m/%d')
-    end_date = datetime.strptime(total_billing['end'], '%Y-%m-%d') - timedelta(days=1)
+def get_message(billing):
+    start = datetime.strptime(billing['start'], '%Y-%m-%d').strftime('%m/%d')
+    end_date = datetime.strptime(billing['end'], '%Y-%m-%d') - timedelta(days=1)
     end = end_date.strftime('%m/%d')
-    total = round(float(total_billing['billing']), 2)
-    total_prev = None
-    if total_billing_prev is not None:
-        total_prev = round(float(total_billing_prev['billing']), 2)
 
-    if total_prev is not None:
-        title = f'{start}~{end} : Your billing amount is {total:.2f}(+{total_prev:.2f}) USD.'
-    else:
-        title = f'{start}~{end} : Your billing amount is {total:.2f} USD.'
+    total_billing = billing['total']
+    last_billing = billing['daily'][end_date.strftime('%Y-%m-%d')]
 
-    bills = []
-    tax = None
-    for item in service_billings:
-        service_name = item['service_name']
-        billing = round(float(item['billing']), 2)
-        if service_name == 'Tax':
-            tax = billing
+    # total
+    total_sum = sum(total_billing.values())
+    last_sum = sum(last_billing.values())
+    title = f'{start}~{end} : Your billing amount is {total_sum:.2f}(+{last_sum:.2f}) USD.'
+
+    # per service
+    per_service = []
+    for service_name, amount in total_billing.items():
+        if round(amount, 2) == 0.0:
             continue
-
-        billing_prev = None
-        if service_billings_prev is not None:
-            prev_items = [x for x in service_billings_prev if x['service_name'] == service_name]
-            if len(prev_items) > 0:
-                billing_prev = round(float(prev_items[0]['billing']), 2)
-
-        if billing == 0.0:
-            # 請求無し（0.0 USD）の場合は、内訳を表示しない
-            continue
-        if billing_prev is not None:
-            detail = f'- {service_name}: {billing:.2f}(+{billing_prev:.2f}) USD'
+        if service_name in last_billing:
+            detail = f'- {service_name}: {amount:.2f}(+{last_billing[service_name]:.2f}) USD'
         else:
-            detail = f'- {service_name}: {billing:.2f} USD'
-        bills.append({'billing': billing, 'detail': detail})
-    print(bills)
+            detail = f'- {service_name}: {amount:.2f} USD'
+        per_service.append({'amount': amount, 'detail': detail})
+    # sort by amount in descending order
+    per_service = sorted(per_service, key=lambda x: x['amount'], reverse=True)
+    message = '\n'.join(map(lambda x: x['detail'], per_service))
 
-    # sort by billing
-    bills = sorted(bills, key=lambda x: x['billing'], reverse=True)
-
-    message = '\n'.join(map(lambda x: x['detail'], bills))
-    if tax is not None:
-        message += f'\n- Tax: {tax:.2f} USD'
     return title, message
 
 
@@ -135,8 +99,6 @@ def get_begin_of_month(target_day):
 
 
 def notify(title, message):
-    print(title)
-    print(message)
     if len(NOTIFY_TOPIC_ARN) > 0:
         notify_sns(NOTIFY_TOPIC_ARN, title, message)
     if len(SLACK_WEBHOOK_URL) > 0:
