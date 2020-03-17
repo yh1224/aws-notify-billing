@@ -13,8 +13,13 @@ ce_client = boto3.client('ce', region_name='us-east-1')
 
 
 def lambda_handler(event, context):
-    target_day = date.today() - timedelta(days=1)
-    billing = get_billing(ce_client, get_begin_of_month(target_day), target_day)
+    target_day = date.today()
+    if target_day.day == 1:
+        target_day - timedelta(days=1)
+    start_day = date(target_day.year, target_day.month, 1)
+    end_day = target_day + timedelta(days=1)
+    billing = get_billing(ce_client, start_day, end_day)
+
     (title, message) = get_message(billing)
     notify(title, message)
 
@@ -26,7 +31,7 @@ def get_billing(client, start_day, end_day):
             'Start': start_day.isoformat(),
             'End': end_day.isoformat()
         },
-        Granularity='DAILY',
+        Granularity='MONTHLY',
         Metrics=[
             'AmortizedCost'
         ],
@@ -38,64 +43,48 @@ def get_billing(client, start_day, end_day):
         ]
     )
 
-    daily = {}
-    total = {}
+    per_service = {}
     for result_by_time in response['ResultsByTime']:
-        start_date = result_by_time['TimePeriod']['Start']
-        daily[start_date] = {}
         for group in result_by_time['Groups']:
             service_name = group['Keys'][0]
-            if service_name == 'Tax':  # exclude tax
-                continue
             amount = float(group['Metrics']['AmortizedCost']['Amount'])
-            daily[start_date][service_name] = amount
-            if service_name not in total:
-                total[service_name] = 0
-            total[service_name] += amount
+            if service_name not in per_service:
+                per_service[service_name] = 0
+            per_service[service_name] += amount
 
     return {
         'start': start_day.isoformat(),
         'end': end_day.isoformat(),
-        'total': total,
-        'daily': daily
+        'per_service': per_service
     }
 
 
 def get_message(billing):
-    start = datetime.strptime(billing['start'], '%Y-%m-%d').strftime('%m/%d')
-    end_date = datetime.strptime(billing['end'], '%Y-%m-%d') - timedelta(days=1)
-    end = end_date.strftime('%m/%d')
-
-    total_billing = billing['total']
-    last_billing = billing['daily'][end_date.strftime('%Y-%m-%d')]
+    month = datetime.strptime(billing['start'], '%Y-%m-%d').strftime('%Y/%m')
+    billing_per_service = billing['per_service']
 
     # total
-    total_sum = sum(total_billing.values())
-    last_sum = sum(last_billing.values())
-    title = f'{start}~{end} : Your billing amount is {total_sum:.2f}(+{last_sum:.2f}) USD.'
+    total_sum = sum(billing_per_service.values())
+    title = f'Current AWS cost for {month} is {total_sum:.2f} USD.'
 
     # per service
     per_service = []
-    for service_name, amount in total_billing.items():
+    tax = None
+    for service_name, amount in billing_per_service.items():
+        if service_name == 'Tax':
+            tax = amount
+            continue
         if round(amount, 2) == 0.0:
             continue
-        if service_name in last_billing:
-            detail = f'- {service_name}: {amount:.2f}(+{last_billing[service_name]:.2f}) USD'
-        else:
-            detail = f'- {service_name}: {amount:.2f} USD'
+        detail = f'- {service_name}: {amount:.2f} USD'
         per_service.append({'amount': amount, 'detail': detail})
     # sort by amount in descending order
     per_service = sorted(per_service, key=lambda x: x['amount'], reverse=True)
     message = '\n'.join(map(lambda x: x['detail'], per_service))
+    if tax is not None:
+        message += f'\n- Tax: {tax:.2f} USD'
 
     return title, message
-
-
-def get_begin_of_month(target_day):
-    if target_day.day == 1:
-        target_day = target_day - timedelta(days=1)
-
-    return date(target_day.year, target_day.month, 1)
 
 
 def notify(title, message):

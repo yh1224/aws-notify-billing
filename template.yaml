@@ -53,7 +53,7 @@ Resources:
         Notify:
           Type: Schedule
           Properties:
-            Schedule: cron(10 0 * * ? *) # 09:10 JST
+            Schedule: cron(55 23 * * ? *)
 
   NotifyBillingTopic:
     Type: AWS::SNS::Topic
