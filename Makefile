@@ -1,3 +1,5 @@
+ENV ?= default
+
 .PHONY: all
 all: build
 
@@ -14,4 +16,4 @@ local-invoke: build env.json
 
 .PHONY:
 deploy: build
-	sam deploy
+	sam deploy --config-env $(ENV) --no-fail-on-empty-changeset
