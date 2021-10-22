@@ -2,13 +2,14 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Notify AWS Billing
 
-Globals:
-  Function:
-    Timeout: 10
-
 Parameters:
   SlackWebhookUrl:
     Type: String
+
+Globals:
+  Function:
+    Architectures: [ arm64 ]
+    Timeout: 10
 
 Resources:
   NotifyBilling:
