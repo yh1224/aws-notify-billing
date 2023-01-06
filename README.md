@@ -13,4 +13,4 @@ sam deploy (--guided)
 
 |Name|Default|Description|
 |:--|:--|:--|
-|SlackWebhookUrl|(none)|Slack Webhook URL to notify. (can be ommitted)|
+|SlackWebhookUrl|(none)|Slack Webhook URL to notify. (can be omitted)|
