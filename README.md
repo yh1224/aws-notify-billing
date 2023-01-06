@@ -1,14 +1,23 @@
-# Welcome to your CDK TypeScript project
+# AWS Notify Billing
 
-This is a blank project for CDK development with TypeScript.
+Notify AWS billing everyday.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## How to deploy
 
-## Useful commands
+ 1. Create context.json and configure
 
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `cdk deploy`      deploy this stack to your default AWS account/region
-* `cdk diff`        compare deployed stack with current state
-* `cdk synth`       emits the synthesized CloudFormation template
+    - slackWebhookUrl : Slack Webhook URL to notify
+
+ 2. Prepare
+
+    ```shell
+    npm install -g cdk
+    npm install
+    cdk bootstrap
+    ```
+
+ 3. Deploy stack
+
+    ```shell
+    cdk deploy
+    ```
