@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import boto3
 import requests
 
+ACCOUNT_NAME = os.environ["ACCOUNT_NAME"]
 NOTIFY_TOPIC_ARN = os.environ["NOTIFY_TOPIC_ARN"]
 SLACK_WEBHOOK_URL = os.environ["SLACK_WEBHOOK_URL"]
 
@@ -65,7 +66,7 @@ def get_message(billing):
 
     # total
     total_sum = sum(billing_per_service.values())
-    title = f"Current AWS cost for {month} is {total_sum:.2f} USD."
+    title = f"{ACCOUNT_NAME}: Current AWS cost for {month} is {total_sum:.2f} USD."
 
     # per service
     per_service = []

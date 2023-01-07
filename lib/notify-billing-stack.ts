@@ -6,18 +6,21 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambda_python from "@aws-cdk/aws-lambda-python-alpha";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as sns from "aws-cdk-lib/aws-sns";
+import {IAMClient, ListAccountAliasesCommand} from "@aws-sdk/client-iam";
 import {Construct} from "constructs";
 import * as path from "path";
 import {Context} from "./Context";
 
 interface AwsBillingStackProps extends cdk.StackProps {
     readonly context: Context,
+    readonly accountAliases: string[];
 }
 
-export class NotifyBillingStack extends cdk.Stack {
+class NotifyBillingStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props: AwsBillingStackProps) {
         super(scope, id, props);
 
+        const {account} = cdk.Stack.of(this);
         const context = props.context;
 
         const notifyBillingTopic = new sns.Topic(this, "NotifyBillingTopic", {});
@@ -26,6 +29,7 @@ export class NotifyBillingStack extends cdk.Stack {
             architecture: lambda.Architecture.ARM_64,
             entry: path.resolve(__dirname, "../src/"),
             environment: {
+                ACCOUNT_NAME: account + (props.accountAliases.length > 0 ? `(${props.accountAliases[0]})` : ""),
                 NOTIFY_TOPIC_ARN: notifyBillingTopic.topicArn,
                 SLACK_WEBHOOK_URL: context.slackWebhookUrl || "",
             },
@@ -46,4 +50,17 @@ export class NotifyBillingStack extends cdk.Stack {
             targets: [new events_targets.LambdaFunction(notifyBillingFunction)],
         });
     }
+}
+
+export async function createNotifyBillingStack(scope: Construct, id: string, context: Context): Promise<cdk.Stack> {
+    return new NotifyBillingStack(scope, id, {
+        env: context.env,
+        context,
+        accountAliases: await getAccountAliases(),
+    });
+}
+
+async function getAccountAliases(): Promise<string[]> {
+    const iam = new IAMClient({});
+    return (await iam.send(new ListAccountAliasesCommand({}))).AccountAliases!;
 }
