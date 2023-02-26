@@ -81,11 +81,16 @@ async function getMessage(billing: Record<string, any>): Promise<[string, string
         const detail = `- ${serviceName}: ${amount.toFixed(2)} USD`;
         perService.push({"amount": amount, "detail": detail});
     }
-    // sort by amount in descending order
-    perService.sort((a, b) => (b["amount"] as number) - (a["amount"] as number));
-    let message = perService.map(x => x["detail"]).join("\n");
-    if (tax) {
-        message += `\n- Tax: ${tax.toFixed(2)} USD`;
+    let message: string;
+    if (perService.length > 0) {
+        // sort by amount in descending order
+        perService.sort((a, b) => (b["amount"] as number) - (a["amount"] as number));
+        message = perService.map(x => x["detail"]).join("\n");
+        if (tax) {
+            message += `\n- Tax: ${tax.toFixed(2)} USD`;
+        }
+    } else {
+        message = "- No data"
     }
     return [title, message];
 }
