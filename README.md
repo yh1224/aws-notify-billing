@@ -2,6 +2,10 @@
 
 Notify AWS billing everyday.
 
+## Prerequisite
+
+- [AWS CDK](https://aws.amazon.com/jp/cdk/)
+
 ## How to deploy
 
  1. Create context.json and configure
@@ -11,7 +15,6 @@ Notify AWS billing everyday.
  2. Prepare
 
     ```shell
-    npm install -g cdk
     npm install
     cdk bootstrap
     ```
