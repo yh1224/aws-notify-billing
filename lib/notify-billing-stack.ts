@@ -8,10 +8,10 @@ import * as logs from "aws-cdk-lib/aws-logs";
 import * as sns from "aws-cdk-lib/aws-sns";
 import {IAMClient, ListAccountAliasesCommand} from "@aws-sdk/client-iam";
 import {Construct} from "constructs";
-import {Context} from "./Context";
+import {Config} from "./config";
 
-interface AwsBillingStackProps extends cdk.StackProps {
-    readonly context: Context,
+type AwsBillingStackProps = cdk.StackProps & {
+    readonly config: Config;
     readonly accountAliases: string[];
 }
 
@@ -20,7 +20,7 @@ class NotifyBillingStack extends cdk.Stack {
         super(scope, id, props);
 
         const {account} = cdk.Stack.of(this);
-        const context = props.context;
+        const config = props.config;
 
         const notifyBillingTopic = new sns.Topic(this, "NotifyBillingTopic", {});
 
@@ -30,7 +30,7 @@ class NotifyBillingStack extends cdk.Stack {
             environment: {
                 ACCOUNT_NAME: account + (props.accountAliases.length > 0 ? `(${props.accountAliases[0]})` : ""),
                 NOTIFY_TOPIC_ARN: notifyBillingTopic.topicArn,
-                SLACK_WEBHOOK_URL: context.slackWebhookUrl || "",
+                SLACK_WEBHOOK_URL: config.slackWebhookUrl || "",
             },
             handler: "lambda_handler",
             logRetention: logs.RetentionDays.ONE_WEEK,
@@ -50,10 +50,11 @@ class NotifyBillingStack extends cdk.Stack {
     }
 }
 
-export async function createNotifyBillingStack(scope: Construct, id: string, context: Context): Promise<cdk.Stack> {
+export async function createNotifyBillingStack(scope: Construct, id: string, config: Config): Promise<cdk.Stack> {
     return new NotifyBillingStack(scope, id, {
-        env: context.env,
-        context,
+        env: config.env,
+        stackName: config.stackName,
+        config,
         accountAliases: await getAccountAliases(),
     });
 }

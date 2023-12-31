@@ -8,9 +8,7 @@ Notify AWS billing everyday.
 
 ## How to deploy
 
- 1. Create context.json and configure
-
-    - slackWebhookUrl : Slack Webhook URL to notify
+ 1. Create config.yaml and configure
 
  2. Prepare
 

@@ -8,9 +8,8 @@ node_modules
 cdk.out
 
 .idea
-context.json*
-context.*.json
-!context.json.example
+config*.yaml
+!config.example.yaml
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
