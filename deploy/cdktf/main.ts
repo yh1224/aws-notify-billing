@@ -1,14 +1,11 @@
-import { Construct } from "constructs";
-import { App, TerraformStack } from "cdktf";
+import * as cdktf from "cdktf";
+import {createConfig} from "./lib/config";
+import {createNotifyBillingStack} from "./lib/notify-billing-stack";
 
-class MyStack extends TerraformStack {
-  constructor(scope: Construct, id: string) {
-    super(scope, id);
+const app = new cdktf.App();
+const config = createConfig(app.node.tryGetContext("env") || process.env.ENV);
 
-    // define resources here
-  }
-}
-
-const app = new App();
-new MyStack(app, "cdktf");
-app.synth();
+(async () => {
+    await createNotifyBillingStack(app, "cdktf", config);
+    app.synth();
+})();

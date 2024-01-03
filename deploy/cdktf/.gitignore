@@ -10,6 +10,8 @@ tsconfig.tsbuildinfo
 !jest.config.js
 !setup.js
 
+config*.yaml
+!config.example.yaml
 package-lock.json
 pnpm-lock.yaml
 yarn.lock

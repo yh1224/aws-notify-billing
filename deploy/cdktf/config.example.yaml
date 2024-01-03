@@ -1,0 +1,15 @@
+# [OPTIONAL] AWS Environment
+env:
+  account: "xxxxxxxxxxxx"
+  region: ap-northeast-1
+
+# Project name
+project: NotifyBilling
+
+# Backend
+#backend: s3://<bucket>/<prefix>
+
+# Slack Webhook URL
+slackWebhookUrl: https://hooks.slack.com/services/XXXXXXXXX/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# Group By ("SERVICE" / "LINKED_ACCOUNT")
+groupBy: SERVICE
