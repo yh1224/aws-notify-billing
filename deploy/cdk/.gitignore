@@ -1,0 +1,14 @@
+*.js
+!jest.config.js
+*.d.ts
+node_modules
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
+
+config*.yaml
+!config.example.yaml
+package-lock.json
+pnpm-lock.yaml
+yarn.lock

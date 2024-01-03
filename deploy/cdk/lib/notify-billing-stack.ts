@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import * as cdk from "aws-cdk-lib";
 import * as events from "aws-cdk-lib/aws-events";
 import * as events_targets from "aws-cdk-lib/aws-events-targets";
@@ -30,13 +31,14 @@ class NotifyBillingStack extends cdk.Stack {
             bundling: {
                 nodeModules: ["node-fetch"],
             },
-            entry: "src/lambdas/NotifyBillingFunc/index.ts",
+            entry: path.resolve(__dirname, "../../../src/lambdas/NotifyBillingFunc/index.ts"),
             environment: {
                 ACCOUNT_NAME: account + (props.accountAliases.length > 0 ? `(${props.accountAliases[0]})` : ""),
                 NOTIFY_TOPIC_ARN: notifyBillingTopic.topicArn,
                 SLACK_WEBHOOK_URL: config.slackWebhookUrl || "",
                 GROUP_BY: groupBy,
             },
+            projectRoot: path.resolve(__dirname, "../../.."),
             handler: "lambda_handler",
             logRetention: logs.RetentionDays.ONE_WEEK,
             runtime: lambda.Runtime.NODEJS_18_X,
