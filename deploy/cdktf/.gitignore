@@ -9,3 +9,7 @@ cdktf.log
 tsconfig.tsbuildinfo
 !jest.config.js
 !setup.js
+
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
