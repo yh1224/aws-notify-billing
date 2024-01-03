@@ -58,6 +58,13 @@ async function getBilling(startDay: Date, endDay: Date): Promise<Record<string, 
     }
 }
 
+function toFixed(num: number): string {
+    let str = num.toFixed(2);
+    if (str == "-0.00") {
+        str = "0.00";
+    }
+    return str;
+}
 
 async function getMessage(billing: Record<string, any>): Promise<[string, string]> {
     const month = (new Date(billing["start"])).toISOString().substring(0, 7);
@@ -65,7 +72,7 @@ async function getMessage(billing: Record<string, any>): Promise<[string, string
 
     // total
     const totalSum = Object.values(billingPerService).reduce((acc, v) => acc + v, 0);
-    const title = `${ACCOUNT_NAME}: Current AWS cost for ${month} is ${totalSum.toFixed(2)} USD.`;
+    const title = `${ACCOUNT_NAME}: Current AWS cost for ${month} is ${toFixed(totalSum)} USD.`;
 
     // per service
     const perService: Record<string, string | number>[] = [];
@@ -75,10 +82,7 @@ async function getMessage(billing: Record<string, any>): Promise<[string, string
             tax = amount;
             continue;
         }
-        if (amount.toFixed(1) == "0.0") {
-            continue;
-        }
-        const detail = `- ${serviceName}: ${amount.toFixed(2)} USD`;
+        const detail = `- ${serviceName}: ${toFixed(amount)} USD`;
         perService.push({"amount": amount, "detail": detail});
     }
     let message: string;
@@ -87,7 +91,7 @@ async function getMessage(billing: Record<string, any>): Promise<[string, string
         perService.sort((a, b) => (b["amount"] as number) - (a["amount"] as number));
         message = perService.map(x => x["detail"]).join("\n");
         if (tax) {
-            message += `\n- Tax: ${tax.toFixed(2)} USD`;
+            message += `\n- Tax: ${toFixed(tax)} USD`;
         }
     } else {
         message = "- No data"
