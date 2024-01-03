@@ -27,6 +27,9 @@ class NotifyBillingStack extends cdk.Stack {
 
         const notifyBillingFunc = new lambda_nodejs.NodejsFunction(this, "NotifyBillingFunc", {
             architecture: lambda.Architecture.ARM_64,
+            bundling: {
+                nodeModules: ["node-fetch"],
+            },
             entry: "src/lambdas/NotifyBillingFunc/index.ts",
             environment: {
                 ACCOUNT_NAME: account + (props.accountAliases.length > 0 ? `(${props.accountAliases[0]})` : ""),
