@@ -1,11 +1,12 @@
 import {Context, Handler} from "aws-lambda";
-import {CostExplorerClient, GetCostAndUsageCommand} from "@aws-sdk/client-cost-explorer";
+import {CostExplorerClient, GetCostAndUsageCommand, GetDimensionValuesCommand} from "@aws-sdk/client-cost-explorer";
 import {PublishCommand, SNSClient} from "@aws-sdk/client-sns";
 import fetch from "node-fetch";
 
 const ACCOUNT_NAME = process.env.ACCOUNT_NAME || "";
 const NOTIFY_TOPIC_ARN = process.env.NOTIFY_TOPIC_ARN || "";
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || "";
+const GROUP_BY = process.env.GROUP_BY || "";
 
 export const lambda_handler: Handler = async (event, context: Context) => {
     const targetDay = new Date();
@@ -18,6 +19,20 @@ export const lambda_handler: Handler = async (event, context: Context) => {
 
     const [title, message] = await getMessage(billing);
     await notify(title, message);
+}
+
+async function getDimensionDescriptions(startDay: Date, endDay: Date, dimension: string): Promise<Record<string, string>> {
+    const ceClient = new CostExplorerClient({});
+    const response = await ceClient.send(new GetDimensionValuesCommand({
+        TimePeriod: {
+            Start: startDay.toISOString().split("T")[0],
+            End: endDay.toISOString().split("T")[0],
+        },
+        Dimension: dimension,
+    }));
+    const entries = response.DimensionValues
+        ?.map(v => [v.Value!, v.Attributes!["description"]]);
+    return Object.fromEntries(entries || []);
 }
 
 async function getBilling(startDay: Date, endDay: Date): Promise<Record<string, any>> {
@@ -34,19 +49,28 @@ async function getBilling(startDay: Date, endDay: Date): Promise<Record<string, 
         GroupBy: [
             {
                 Type: "DIMENSION",
-                Key: "SERVICE",
+                Key: GROUP_BY,
             }
         ],
     }));
 
+    let descriptions: Record<string, string> = {};
+    if (GROUP_BY == "LINKED_ACCOUNT") {
+        // get account names
+        descriptions = await getDimensionDescriptions(startDay, endDay, GROUP_BY);
+    }
+
     const perService: Record<string, number> = {};
     for (const resultByTime of response.ResultsByTime!) {
         for (const group of resultByTime.Groups!) {
-            const serviceName = group.Keys![0]!;
+            let groupKey = group.Keys![0]!;
+            if (descriptions[groupKey]) {
+                groupKey = `${groupKey}(${descriptions[groupKey]})`;
+            }
             const amount = parseFloat(group.Metrics!["AmortizedCost"].Amount!);
-            if (!(serviceName in perService)) {
-                perService[serviceName] = 0;
-                perService[serviceName] += amount;
+            if (!(groupKey in perService)) {
+                perService[groupKey] = 0;
+                perService[groupKey] += amount;
             }
         }
     }

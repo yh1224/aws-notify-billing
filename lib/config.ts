@@ -7,6 +7,7 @@ export type Config = {
     readonly stackName: string;
 
     readonly slackWebhookUrl?: string;
+    readonly groupBy?: string;
 }
 
 /**

@@ -21,6 +21,7 @@ class NotifyBillingStack extends cdk.Stack {
 
         const {account} = cdk.Stack.of(this);
         const config = props.config;
+        const groupBy = config.groupBy || "SERVICE";
 
         const notifyBillingTopic = new sns.Topic(this, "NotifyBillingTopic", {});
 
@@ -31,6 +32,7 @@ class NotifyBillingStack extends cdk.Stack {
                 ACCOUNT_NAME: account + (props.accountAliases.length > 0 ? `(${props.accountAliases[0]})` : ""),
                 NOTIFY_TOPIC_ARN: notifyBillingTopic.topicArn,
                 SLACK_WEBHOOK_URL: config.slackWebhookUrl || "",
+                GROUP_BY: groupBy,
             },
             handler: "lambda_handler",
             logRetention: logs.RetentionDays.ONE_WEEK,
@@ -40,7 +42,7 @@ class NotifyBillingStack extends cdk.Stack {
         notifyBillingTopic.grantPublish(notifyBillingFunc);
         notifyBillingFunc.addToRolePolicy(new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
-            actions: ["ce:GetCostAndUsage"],
+            actions: ["ce:GetCostAndUsage", "ce:GetDimensionValues"],
             resources: ["*"],
         }));
         new events.Rule(this, "Schedule", {

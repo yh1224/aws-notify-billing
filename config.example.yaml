@@ -8,3 +8,5 @@ stackName: NotifyBilling
 
 # Slack Webhook URL
 slackWebhookUrl: https://hooks.slack.com/services/XXXXXXXXX/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# Group By ("SERVICE" / "LINKED_ACCOUNT")
+groupBy: SERVICE
