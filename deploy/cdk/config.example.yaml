@@ -6,6 +6,8 @@ env:
 # Stack name
 stackName: NotifyBilling
 
+# Schedule by cron expression
+cron: 55 23 * * ? *  # 08:55 JST
 # Slack Webhook URL
 slackWebhookUrl: https://hooks.slack.com/services/XXXXXXXXX/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # Group By ("SERVICE" / "LINKED_ACCOUNT")

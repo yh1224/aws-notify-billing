@@ -6,6 +6,7 @@ export type Config = {
     readonly env?: cdk.Environment;
     readonly stackName: string;
 
+    readonly cron?: string;
     readonly slackWebhookUrl?: string;
     readonly groupBy?: string;
 }

@@ -22,6 +22,8 @@ class NotifyBillingStack extends cdk.Stack {
 
         const {account} = cdk.Stack.of(this);
         const config = props.config;
+        const cron = config.cron || "55 23 * * ? *"; // 08:55 JST
+        const slackWebhookUrl = config.slackWebhookUrl || "";
         const groupBy = config.groupBy || "SERVICE";
 
         const notifyBillingTopic = new sns.Topic(this, "NotifyBillingTopic", {});
@@ -35,7 +37,7 @@ class NotifyBillingStack extends cdk.Stack {
             environment: {
                 ACCOUNT_NAME: account + (props.accountAliases.length > 0 ? `(${props.accountAliases[0]})` : ""),
                 NOTIFY_TOPIC_ARN: notifyBillingTopic.topicArn,
-                SLACK_WEBHOOK_URL: config.slackWebhookUrl || "",
+                SLACK_WEBHOOK_URL: slackWebhookUrl,
                 GROUP_BY: groupBy,
             },
             projectRoot: path.resolve(__dirname, "../../.."),
@@ -51,7 +53,7 @@ class NotifyBillingStack extends cdk.Stack {
             resources: ["*"],
         }));
         new events.Rule(this, "Schedule", {
-            schedule: events.Schedule.cron({minute: "55", hour: "23"}), // 08:55 JST
+            schedule: events.Schedule.expression(`cron(${cron})`),
             targets: [new events_targets.LambdaFunction(notifyBillingFunc)],
         });
     }

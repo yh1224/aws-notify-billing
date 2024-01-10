@@ -9,6 +9,7 @@ export type Config = {
     readonly project: string;
     readonly backend?: string;
 
+    readonly cron?: string;
     readonly slackWebhookUrl?: string;
     readonly groupBy?: string;
 }

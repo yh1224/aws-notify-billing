@@ -30,6 +30,8 @@ export class NotifyBillingStack extends cdktf.TerraformStack {
         const {accountId} = new DataAwsCallerIdentity(this, "CallerIdentity");
 
         const {config} = props;
+        const cron = config.cron || "55 23 * * ? *"; // 08:55 JST
+        const slackWebhookUrl = config.slackWebhookUrl || "";
         const groupBy = config.groupBy || "SERVICE";
 
         new RandomProvider(this, "RandomProvider", {});
@@ -126,7 +128,7 @@ export class NotifyBillingStack extends cdktf.TerraformStack {
                 variables: {
                     ACCOUNT_NAME: accountId + (props.accountAliases.length > 0 ? `(${props.accountAliases[0]})` : ""),
                     NOTIFY_TOPIC_ARN: notifyBillingTopic.arn,
-                    SLACK_WEBHOOK_URL: config.slackWebhookUrl || "",
+                    SLACK_WEBHOOK_URL: slackWebhookUrl,
                     GROUP_BY: groupBy,
                 },
             },
@@ -141,7 +143,7 @@ export class NotifyBillingStack extends cdktf.TerraformStack {
 
         const notifyBillingEventRule = new CloudwatchEventRule(this, "NotifyBillingRule", {
             name: `${config.project}-NotifyBillingRule-${uniqueSuffix.hex}`,
-            scheduleExpression: "cron(55 23 * * ? *)", // 08:55 JST
+            scheduleExpression: `cron(${cron})`,
         });
         new CloudwatchEventTarget(this, "NotifyBillingTarget", {
             arn: notifyBillingFunction.arn,
