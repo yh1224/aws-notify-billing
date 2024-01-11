@@ -106,7 +106,11 @@ async function getMessage(billing: Record<string, any>): Promise<[string, string
             tax = amount;
             continue;
         }
-        const detail = `- ${serviceName}: ${toFixed(amount)} USD`;
+        const amountFixed = toFixed(amount);
+        if (amountFixed == "0.00") {
+            continue;
+        }
+        const detail = `- ${serviceName}: ${amountFixed} USD`;
         perService.push({"amount": amount, "detail": detail});
     }
     let message: string;
