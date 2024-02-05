@@ -21,20 +21,6 @@ export const lambda_handler: Handler = async (event, context: Context) => {
     await notify(title, message);
 }
 
-async function getDimensionDescriptions(startDay: Date, endDay: Date, dimension: string): Promise<Record<string, string>> {
-    const ceClient = new CostExplorerClient({});
-    const response = await ceClient.send(new GetDimensionValuesCommand({
-        TimePeriod: {
-            Start: startDay.toISOString().split("T")[0],
-            End: endDay.toISOString().split("T")[0],
-        },
-        Dimension: dimension,
-    }));
-    const entries = response.DimensionValues
-        ?.map(v => [v.Value!, v.Attributes!["description"]]);
-    return Object.fromEntries(entries || []);
-}
-
 type BillingByGroup = {
     readonly name: string;
     readonly description?: string;
@@ -68,12 +54,11 @@ async function getBilling(startDay: Date, endDay: Date): Promise<BillingInfo> {
     }));
     process.stdout.write(`${JSON.stringify(response)}\n`);
 
-    let descriptions: Record<string, string> = {};
-    if (GROUP_BY == "LINKED_ACCOUNT") {
-        // get account names
-        descriptions = await getDimensionDescriptions(startDay, endDay, GROUP_BY);
-    }
+    // get descriptions
+    const descriptions = Object.fromEntries(response.DimensionValueAttributes
+        ?.map(v => [v.Value!, v.Attributes!["description"]]) || []);
 
+    // aggregate by group
     const amountByGroup: Record<string, number> = {};
     let total = 0;
     let tax: number | null = null;
