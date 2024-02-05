@@ -35,7 +35,20 @@ async function getDimensionDescriptions(startDay: Date, endDay: Date, dimension:
     return Object.fromEntries(entries || []);
 }
 
-async function getBilling(startDay: Date, endDay: Date): Promise<Record<string, any>> {
+type BillingByGroup = {
+    readonly name: string;
+    readonly description?: string;
+    readonly amount: number;
+}
+
+type BillingInfo = {
+    readonly start: string;
+    readonly end: string;
+    readonly amount: number;
+    readonly byGroup: BillingByGroup[];
+}
+
+async function getBilling(startDay: Date, endDay: Date): Promise<BillingInfo> {
     const ceClient = new CostExplorerClient({});
     const response = await ceClient.send(new GetCostAndUsageCommand({
         TimePeriod: {
@@ -53,6 +66,7 @@ async function getBilling(startDay: Date, endDay: Date): Promise<Record<string, 
             }
         ],
     }));
+    process.stdout.write(`${JSON.stringify(response)}\n`);
 
     let descriptions: Record<string, string> = {};
     if (GROUP_BY == "LINKED_ACCOUNT") {
@@ -60,25 +74,45 @@ async function getBilling(startDay: Date, endDay: Date): Promise<Record<string, 
         descriptions = await getDimensionDescriptions(startDay, endDay, GROUP_BY);
     }
 
-    const perService: Record<string, number> = {};
+    const amountByGroup: Record<string, number> = {};
+    let total = 0;
+    let tax: number | null = null;
     for (const resultByTime of response.ResultsByTime!) {
         for (const group of resultByTime.Groups!) {
-            let groupKey = group.Keys![0]!;
-            if (descriptions[groupKey]) {
-                groupKey = `${groupKey}(${descriptions[groupKey]})`;
-            }
+            const groupKey = group.Keys![0]!;
             const amount = parseFloat(group.Metrics!["AmortizedCost"].Amount!);
-            if (!(groupKey in perService)) {
-                perService[groupKey] = 0;
-                perService[groupKey] += amount;
+            total += amount;
+            if (groupKey == "Tax") {
+                tax = amount;
+                continue;
+            }
+            if (!(groupKey in amountByGroup)) {
+                amountByGroup[groupKey] = 0;
+                amountByGroup[groupKey] += amount;
             }
         }
     }
+    const billingByGroup = Object.keys(amountByGroup)
+        .map(groupKey => ({
+            name: groupKey,
+            description: descriptions[groupKey],
+            amount: amountByGroup[groupKey],
+        }));
+    // sort by amount in descending order
+    billingByGroup.sort((a, b) => b.amount - a.amount);
+    if (tax) {
+        billingByGroup.push({
+            name: "Tax",
+            description: undefined,
+            amount: tax,
+        });
+    }
 
     return {
-        "start": startDay.toISOString(),
-        "end": endDay.toISOString(),
-        "perService": perService,
+        start: startDay.toISOString(),
+        end: endDay.toISOString(),
+        amount: total,
+        byGroup: billingByGroup,
     }
 }
 
@@ -90,37 +124,30 @@ function toFixed(num: number): string {
     return str;
 }
 
-async function getMessage(billing: Record<string, any>): Promise<[string, string]> {
-    const month = (new Date(billing["start"])).toISOString().substring(0, 7);
-    const billingPerService: Record<string, number> = billing["perService"];
+async function getMessage(billingInfo: BillingInfo): Promise<[string, string]> {
+    const month = (new Date(billingInfo.start)).toISOString().substring(0, 7);
+    const amount = billingInfo.amount;
+    const byGroup = billingInfo.byGroup;
 
     // total
-    const totalSum = Object.values(billingPerService).reduce((acc, v) => acc + v, 0);
-    const title = `${ACCOUNT_NAME}: Current AWS cost for ${month} is ${toFixed(totalSum)} USD.`;
+    const title = `${ACCOUNT_NAME}: Current AWS cost for ${month} is ${toFixed(amount)} USD.`;
 
-    // per service
-    const perService: Record<string, string | number>[] = [];
-    let tax: number | null = null;
-    for (const [serviceName, amount] of Object.entries(billingPerService)) {
-        if (serviceName == "Tax") {
-            tax = amount;
-            continue;
+    // details
+    const details: string[] = [];
+    for (const billing of byGroup) {
+        let name = billing.name;
+        if (billing.description) {
+            name += `(${billing.description})`;
         }
-        const amountFixed = toFixed(amount);
+        const amountFixed = toFixed(billing.amount);
         if (amountFixed == "0.00") {
             continue;
         }
-        const detail = `- ${serviceName}: ${amountFixed} USD`;
-        perService.push({"amount": amount, "detail": detail});
+        details.push(`- ${name}: ${amountFixed} USD`);
     }
     let message: string;
-    if (perService.length > 0) {
-        // sort by amount in descending order
-        perService.sort((a, b) => (b["amount"] as number) - (a["amount"] as number));
-        message = perService.map(x => x["detail"]).join("\n");
-        if (tax) {
-            message += `\n- Tax: ${toFixed(tax)} USD`;
-        }
+    if (details.length > 0) {
+        message = details.join("\n");
     } else {
         message = "- No data"
     }
