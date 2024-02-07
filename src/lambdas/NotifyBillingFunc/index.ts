@@ -3,7 +3,7 @@ import {CostExplorerClient, GetCostAndUsageCommand, GetDimensionValuesCommand} f
 import {PublishCommand, SNSClient} from "@aws-sdk/client-sns";
 import fetch from "node-fetch";
 
-const ACCOUNT_NAME = process.env.ACCOUNT_NAME || "";
+const TITLE = process.env.TITLE || "";
 const NOTIFY_TOPIC_ARN = process.env.NOTIFY_TOPIC_ARN || "";
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || "";
 const GROUP_BY = process.env.GROUP_BY || "";
@@ -115,7 +115,7 @@ async function getMessage(billingInfo: BillingInfo): Promise<[string, string]> {
     const byGroup = billingInfo.byGroup;
 
     // total
-    const title = `${ACCOUNT_NAME}: Current AWS cost for ${month} is ${toFixed(amount)} USD.`;
+    const title = `${TITLE}: Current AWS cost for ${month} is ${toFixed(amount)} USD.`;
 
     // details
     const details: string[] = [];

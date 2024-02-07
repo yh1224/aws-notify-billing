@@ -30,6 +30,7 @@ export class NotifyBillingStack extends cdktf.TerraformStack {
         const {accountId} = new DataAwsCallerIdentity(this, "CallerIdentity");
 
         const {config} = props;
+        const title = config.title || accountId + (props.accountAliases.length > 0 ? `(${props.accountAliases[0]})` : "");
         const cron = config.cron || "55 23 * * ? *"; // 08:55 JST
         const slackWebhookUrl = config.slackWebhookUrl || "";
         const groupBy = config.groupBy || "SERVICE";
@@ -126,7 +127,7 @@ export class NotifyBillingStack extends cdktf.TerraformStack {
             architectures: ["arm64"],
             environment: {
                 variables: {
-                    ACCOUNT_NAME: accountId + (props.accountAliases.length > 0 ? `(${props.accountAliases[0]})` : ""),
+                    TITLE: title,
                     NOTIFY_TOPIC_ARN: notifyBillingTopic.arn,
                     SLACK_WEBHOOK_URL: slackWebhookUrl,
                     GROUP_BY: groupBy,

@@ -22,6 +22,7 @@ class NotifyBillingStack extends cdk.Stack {
 
         const {account} = cdk.Stack.of(this);
         const config = props.config;
+        const title = config.title || account + (props.accountAliases.length > 0 ? `(${props.accountAliases[0]})` : "");
         const cron = config.cron || "55 23 * * ? *"; // 08:55 JST
         const slackWebhookUrl = config.slackWebhookUrl || "";
         const groupBy = config.groupBy || "SERVICE";
@@ -35,7 +36,7 @@ class NotifyBillingStack extends cdk.Stack {
             },
             entry: path.resolve(__dirname, "../../../src/lambdas/NotifyBillingFunc/index.ts"),
             environment: {
-                ACCOUNT_NAME: account + (props.accountAliases.length > 0 ? `(${props.accountAliases[0]})` : ""),
+                TITLE: title,
                 NOTIFY_TOPIC_ARN: notifyBillingTopic.topicArn,
                 SLACK_WEBHOOK_URL: slackWebhookUrl,
                 GROUP_BY: groupBy,
