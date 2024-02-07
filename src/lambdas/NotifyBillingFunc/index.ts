@@ -7,6 +7,7 @@ const TITLE = process.env.TITLE || "";
 const NOTIFY_TOPIC_ARN = process.env.NOTIFY_TOPIC_ARN || "";
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || "";
 const GROUP_BY = process.env.GROUP_BY || "";
+const FILTER_DESCRIPTION = process.env.FILTER_DESCRIPTION || "";
 
 export const lambda_handler: Handler = async (event, context: Context) => {
     const targetDay = new Date();
@@ -65,6 +66,10 @@ async function getBilling(startDay: Date, endDay: Date): Promise<BillingInfo> {
     for (const resultByTime of response.ResultsByTime!) {
         for (const group of resultByTime.Groups!) {
             const groupKey = group.Keys![0]!;
+            if (FILTER_DESCRIPTION.length > 0 && !descriptions[groupKey]?.includes(FILTER_DESCRIPTION)) {
+                // Target only groups that include the filterDescription string in description attribute
+                continue;
+            }
             const amount = parseFloat(group.Metrics!["AmortizedCost"].Amount!);
             total += amount;
             if (groupKey == "Tax") {

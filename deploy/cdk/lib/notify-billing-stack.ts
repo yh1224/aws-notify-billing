@@ -26,6 +26,7 @@ class NotifyBillingStack extends cdk.Stack {
         const cron = config.cron || "55 23 * * ? *"; // 08:55 JST
         const slackWebhookUrl = config.slackWebhookUrl || "";
         const groupBy = config.groupBy || "SERVICE";
+        const filterDescription = config.filterDescription || "";
 
         const notifyBillingTopic = new sns.Topic(this, "NotifyBillingTopic", {});
 
@@ -40,6 +41,7 @@ class NotifyBillingStack extends cdk.Stack {
                 NOTIFY_TOPIC_ARN: notifyBillingTopic.topicArn,
                 SLACK_WEBHOOK_URL: slackWebhookUrl,
                 GROUP_BY: groupBy,
+                FILTER_DESCRIPTION: filterDescription,
             },
             projectRoot: path.resolve(__dirname, "../../.."),
             handler: "lambda_handler",

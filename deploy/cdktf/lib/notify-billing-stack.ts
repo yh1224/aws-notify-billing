@@ -34,6 +34,7 @@ export class NotifyBillingStack extends cdktf.TerraformStack {
         const cron = config.cron || "55 23 * * ? *"; // 08:55 JST
         const slackWebhookUrl = config.slackWebhookUrl || "";
         const groupBy = config.groupBy || "SERVICE";
+        const filterDescription = config.filterDescription || "";
 
         new RandomProvider(this, "RandomProvider", {});
         const uniqueSuffix = new Id(this, "RandomId", {byteLength: 5});
@@ -131,6 +132,7 @@ export class NotifyBillingStack extends cdktf.TerraformStack {
                     NOTIFY_TOPIC_ARN: notifyBillingTopic.arn,
                     SLACK_WEBHOOK_URL: slackWebhookUrl,
                     GROUP_BY: groupBy,
+                    FILTER_DESCRIPTION: filterDescription,
                 },
             },
             functionName: `${config.project}-NotifyBillingFunction-${uniqueSuffix.hex}`,

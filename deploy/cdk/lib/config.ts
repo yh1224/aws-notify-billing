@@ -10,6 +10,9 @@ export type Config = {
     readonly cron?: string;
     readonly slackWebhookUrl?: string;
     readonly groupBy?: string;
+
+    // Experimental
+    readonly filterDescription?: string;
 }
 
 /**
