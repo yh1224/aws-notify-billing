@@ -121,8 +121,9 @@ export class NotifyBillingStack extends cdktf.TerraformStack {
         });
         const lambdaArchive = new S3Object(this, "FunctionAsset", {
             bucket: bucket.bucket,
-            key: `${functionAsset.fileName}`,
+            key: functionAsset.assetHash,
             source: functionAsset.path,
+            sourceHash: functionAsset.assetHash,
         });
         const notifyBillingFunction = new LambdaFunction(this, "NotifyBillingFunction", {
             architectures: ["arm64"],
