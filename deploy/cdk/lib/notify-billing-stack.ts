@@ -30,12 +30,14 @@ class NotifyBillingStack extends cdk.Stack {
 
         const notifyBillingTopic = new sns.Topic(this, "NotifyBillingTopic", {});
 
+        const sourceDir = path.resolve(__dirname, "../../../src/lambdas/NotifyBillingFunc");
         const notifyBillingFunc = new lambda_nodejs.NodejsFunction(this, "NotifyBillingFunc", {
             architecture: lambda.Architecture.ARM_64,
             bundling: {
                 nodeModules: ["node-fetch"],
             },
-            entry: path.resolve(__dirname, "../../../src/lambdas/NotifyBillingFunc/index.ts"),
+            depsLockFilePath: path.resolve(sourceDir, "package-lock.json"),
+            entry: path.resolve(sourceDir, "index.ts"),
             environment: {
                 TITLE: title,
                 NOTIFY_TOPIC_ARN: notifyBillingTopic.topicArn,
@@ -43,7 +45,6 @@ class NotifyBillingStack extends cdk.Stack {
                 GROUP_BY: groupBy,
                 FILTER_DESCRIPTION: filterDescription,
             },
-            projectRoot: path.resolve(__dirname, "../../.."),
             handler: "lambda_handler",
             logRetention: logs.RetentionDays.ONE_WEEK,
             runtime: lambda.Runtime.NODEJS_18_X,
