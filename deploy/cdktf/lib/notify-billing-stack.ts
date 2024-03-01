@@ -138,7 +138,7 @@ export class NotifyBillingStack extends cdktf.TerraformStack {
             },
             functionName: `${config.project}-NotifyBillingFunction-${uniqueSuffix.hex}`,
             handler: "index.lambda_handler",
-            runtime: "nodejs18.x",
+            runtime: "nodejs20.x",
             role: notifyBillingRole.arn,
             s3Bucket: bucket.bucket,
             s3Key: lambdaArchive.key,

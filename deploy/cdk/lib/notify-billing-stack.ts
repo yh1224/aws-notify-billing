@@ -47,7 +47,7 @@ class NotifyBillingStack extends cdk.Stack {
             },
             handler: "lambda_handler",
             logRetention: logs.RetentionDays.ONE_WEEK,
-            runtime: lambda.Runtime.NODEJS_18_X,
+            runtime: lambda.Runtime.NODEJS_20_X,
             timeout: cdk.Duration.minutes(1),
         });
         notifyBillingTopic.grantPublish(notifyBillingFunc);
