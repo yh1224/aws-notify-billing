@@ -103,7 +103,7 @@ export class NotifyBillingStack extends cdktf.TerraformStack {
         const bucket = new S3Bucket(this, "AssetBucket", {
             bucket: `cdktf-${config.project.toLowerCase()}-assets-${uniqueSuffix.hex}`,
         });
-        const sourceDir = path.resolve(path.resolve(__dirname, "../../../src/lambdas/NotifyBillingFunc"));
+        const sourceDir = path.resolve(__dirname, "../../../src/lambdas/NotifyBillingFunc");
         child_process.execSync(`cd ${sourceDir} && npm ci --production`);
         buildSync({
             absWorkingDir: sourceDir,
