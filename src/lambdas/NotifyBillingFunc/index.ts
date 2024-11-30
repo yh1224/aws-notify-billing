@@ -1,5 +1,5 @@
 import {Context, Handler} from "aws-lambda";
-import {CostExplorerClient, GetCostAndUsageCommand, GetDimensionValuesCommand} from "@aws-sdk/client-cost-explorer";
+import {CostExplorerClient, GetCostAndUsageCommand} from "@aws-sdk/client-cost-explorer";
 import {PublishCommand, SNSClient} from "@aws-sdk/client-sns";
 import fetch from "node-fetch";
 
