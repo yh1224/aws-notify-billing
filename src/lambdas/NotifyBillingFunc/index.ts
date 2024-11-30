@@ -158,10 +158,10 @@ async function notifySlack(url: string, title: string, message: string): Promise
     await fetch(url, {
         method: "POST",
         body: JSON.stringify({
+            "text": title,
             "attachments": [
                 {
                     "color": "#36a64f",
-                    "pretext": title,
                     "text": message
                 },
             ],
