@@ -46,6 +46,15 @@ async function getBilling(startDay: Date, endDay: Date): Promise<BillingInfo> {
         Metrics: [
             "AmortizedCost",
         ],
+        Filter: {
+            // exclude promotional credit
+            Not: {
+                Dimensions: {
+                    Key: "RECORD_TYPE",
+                    Values: ["Credit"]
+                }
+            }
+        },
         GroupBy: [
             {
                 Type: "DIMENSION",
