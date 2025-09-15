@@ -46,7 +46,9 @@ class NotifyBillingStack extends cdk.Stack {
                 FILTER_DESCRIPTION: filterDescription,
             },
             handler: "lambda_handler",
-            logRetention: logs.RetentionDays.ONE_WEEK,
+            logGroup: new logs.LogGroup(this, "NotifyBillingFuncLogGroup", {
+                retention: logs.RetentionDays.ONE_WEEK,
+            }),
             runtime: lambda.Runtime.NODEJS_22_X,
             timeout: cdk.Duration.minutes(1),
         });
