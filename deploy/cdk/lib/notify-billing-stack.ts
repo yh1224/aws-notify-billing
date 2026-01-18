@@ -49,7 +49,7 @@ class NotifyBillingStack extends cdk.Stack {
             logGroup: new logs.LogGroup(this, "NotifyBillingFuncLogGroup", {
                 retention: logs.RetentionDays.ONE_WEEK,
             }),
-            runtime: lambda.Runtime.NODEJS_22_X,
+            runtime: lambda.Runtime.NODEJS_24_X,
             timeout: cdk.Duration.minutes(1),
         });
         notifyBillingTopic.grantPublish(notifyBillingFunc);
