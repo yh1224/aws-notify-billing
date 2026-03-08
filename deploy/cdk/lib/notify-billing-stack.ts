@@ -1,11 +1,11 @@
 import * as path from "node:path";
 import * as cdk from "aws-cdk-lib";
-import * as events from "aws-cdk-lib/aws-events";
-import * as events_targets from "aws-cdk-lib/aws-events-targets";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambda_nodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
+import * as scheduler from "aws-cdk-lib/aws-scheduler";
+import * as scheduler_targets from "aws-cdk-lib/aws-scheduler-targets";
 import * as sns from "aws-cdk-lib/aws-sns";
 import {IAMClient, ListAccountAliasesCommand} from "@aws-sdk/client-iam";
 import {Construct} from "constructs";
@@ -58,9 +58,9 @@ class NotifyBillingStack extends cdk.Stack {
             actions: ["ce:GetCostAndUsage", "ce:GetDimensionValues"],
             resources: ["*"],
         }));
-        new events.Rule(this, "Schedule", {
-            schedule: events.Schedule.expression(`cron(${cron})`),
-            targets: [new events_targets.LambdaFunction(notifyBillingFunc)],
+        new scheduler.Schedule(this, "Schedule", {
+            schedule: scheduler.ScheduleExpression.expression(`cron(${cron})`),
+            target: new scheduler_targets.LambdaInvoke(notifyBillingFunc),
         });
     }
 }
